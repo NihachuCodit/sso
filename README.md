@@ -1,5 +1,7 @@
 # SSO Identity Provider
 
+```bash 
+
 ## 1. Requirements
 
 - Node.js >= 18
@@ -96,7 +98,7 @@ docker run -p 3000:3000 --env-file .env sso-idp
 
 ## 11. Useful commands
 
-Run tests:
+Run tests: 
 
 npm test
 
