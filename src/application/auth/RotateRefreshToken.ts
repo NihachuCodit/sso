@@ -1,16 +1,16 @@
-import {
-  verifyRefreshToken,
-  generateAccessToken,
-  generateRefreshToken
-} from "../../infrastructure/jwt"
-
 import { prisma } from "../../infrastructure/prisma"
+import { verifyRefreshToken } from "../../infrastructure/jwt"
+import { createRefreshToken } from "./CreateRefreshToken"
+import { generateAccessToken } from "../../infrastructure/jwt"
+import { checkRefreshRotationLimit } from "../security/RefreshRotationRateLimiter"
 
-export async function rotateRefreshToken(oldRefreshToken: string) {
-  const payload: any = verifyRefreshToken(oldRefreshToken)
+export async function rotateRefreshToken(oldToken: string) {
+  const decoded: any = verifyRefreshToken(oldToken)
+
+  checkRefreshRotationLimit(decoded.userId)
 
   const storedToken = await prisma.refreshToken.findUnique({
-    where: { token: oldRefreshToken },
+    where: { token: oldToken },
     include: { user: true }
   })
 
@@ -18,55 +18,23 @@ export async function rotateRefreshToken(oldRefreshToken: string) {
     throw new Error("Invalid refresh token")
   }
 
-  if (storedToken.expiresAt < new Date()) {
-    throw new Error("Refresh token expired")
-  }
-
-  // revoke old token
   await prisma.refreshToken.update({
-    where: { token: oldRefreshToken },
+    where: { token: oldToken },
     data: { revoked: true }
   })
 
-  // generate new tokens
-  const newAccessToken = generateAccessToken({
-    userId: payload.userId,
-    email: storedToken.user.email
+  const { refreshToken } = await createRefreshToken(
+    decoded.userId
+  )
+
+  const accessToken = generateAccessToken({
+    userId: decoded.userId,
+    email: storedToken.user.email,
+    tokenVersion: storedToken.user.tokenVersion
   })
 
-  // Generate refresh token with uniqueness protection
-  let newRefreshToken: string | null = null
-  let savedToken = null
-  let attempts = 0
-
-  while (!savedToken && attempts < 5) {
-    try {
-      newRefreshToken = generateRefreshToken({
-        userId: payload.userId
-      })
-
-      savedToken = await prisma.refreshToken.create({
-        data: {
-          token: newRefreshToken,
-          userId: payload.userId,
-          expiresAt: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
-          )
-        }
-      })
-    } catch (e: any) {
-      // Prisma unique violation = retry token generation
-      if (e.code !== "P2002") throw e
-      attempts++
-    }
-  }
-
-  if (!savedToken || !newRefreshToken) {
-    throw new Error("Could not rotate refresh token")
-  }
-
   return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken
+    accessToken,
+    refreshToken
   }
 }

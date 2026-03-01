@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { prisma } from "../../infrastructure/prisma"
 import { compare } from "bcrypt"
 
-import { generateAccessToken, generateRefreshToken } from "../../infrastructure/jwt"
+import { generateAccessToken, generateRefreshToken } from "../../infrastructure/jwt/"
 
 export default async function loginUser(req: Request, res: Response) {
   const { email, password } = req.body

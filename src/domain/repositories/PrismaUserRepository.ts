@@ -1,5 +1,5 @@
 import { IUserRepository } from '../../domain/IUserRepository'
-import { User } from '../../domain/User'
+import { User } from '../entities/User'
 import { prisma } from '../../infrastructure/prisma'
 
 export class PrismaUserRepository implements IUserRepository {

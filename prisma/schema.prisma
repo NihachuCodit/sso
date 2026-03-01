@@ -8,13 +8,21 @@ datasource db {
 }
 
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
-  passwordHash String
-  isVerified   Boolean @default(false)
+  id String @id @default(uuid())
 
-  otps         Otp[]
+  email        String @unique
+  passwordHash String
+
+  tokenVersion Int @default(0)
+
+  createdAt  DateTime @default(now())
+  isVerified Boolean  @default(false)
+
+  otps Otp[]
+
   RefreshToken RefreshToken[]
+
+  sessions Session[]
 }
 
 model Otp {
@@ -38,5 +46,20 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id])
   revoked   Boolean  @default(false)
   expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  deviceFingerprint String?
+
+  revoked Boolean @default(false)
+
+  lastUsedAt DateTime @default(now())
+
   createdAt DateTime @default(now())
 }
