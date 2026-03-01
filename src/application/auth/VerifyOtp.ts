@@ -49,13 +49,28 @@ export async function verifyOtp(userId: string, code: string) {
     userId: user.id
   })
 
-  await prisma.refreshToken.create({
-    data: {
-      token: refreshToken,
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  let savedToken = null
+  let attempts = 0
+  
+  while (!savedToken && attempts < 5) {
+    try {
+      const token = generateRefreshToken({ userId: user.id })
+  
+      savedToken = await prisma.refreshToken.create({
+        data: {
+          token,
+          userId: user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        }
+      })
+  
+      return token
+  
+    } catch (e: any) {
+      if (e.code !== "P2002") throw e
+      attempts++
     }
-  })
+  }
 
   return {
     accessToken,
