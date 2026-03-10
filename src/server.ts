@@ -10,7 +10,6 @@ import logoutRoute from "./interfaces/routes/auth/logout.route"
 import profileRoute from "./interfaces/routes/auth/profile.route"
 
 const app = express()
-
 app.use(cors())
 app.use(express.json())
 
@@ -27,7 +26,4 @@ app.get("/", (_, res) => {
 })
 
 const PORT = process.env.PORT || 3000
-
-app.listen(PORT, () => {
-  console.log(`Server running http://localhost:${PORT}`)
-})
+app.listen(PORT, () => console.log(`Server running http://localhost:${PORT}`))

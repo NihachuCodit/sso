@@ -13,9 +13,10 @@ router.post("/", async (req: Request, res: Response) => {
       })
     }
 
+    // помечаем токен как использованный
     await prisma.refreshToken.updateMany({
       where: { token: refreshToken },
-      data: { revoked: true }
+      data: { used: true }
     })
 
     return res.json({

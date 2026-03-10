@@ -86,7 +86,7 @@ Build container:
 docker build -t sso-idp .
 ```
 Run container:
-
+```bash 
 docker run -p 3000:3000 --env-file .env sso-idp
 ```
 ## 11. Useful commands

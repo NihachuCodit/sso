@@ -1,57 +1,42 @@
-import { Request, Response } from "express"
 import { prisma } from "../../infrastructure/prisma"
-import { compare } from "bcrypt"
+import { comparePassword } from "../../shared/hash"
+import { generateAccessToken } from "../../infrastructure/jwt"
+import { createRefreshToken } from "./CreateRefreshToken"
 
-import { generateAccessToken, generateRefreshToken } from "../../infrastructure/jwt/"
+export async function loginUser({
+  email,
+  password
+}: {
+  email: string
+  password: string
+}) {
 
-export default async function loginUser(req: Request, res: Response) {
-  const { email, password } = req.body
-
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" })
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) {
+    throw new Error("Invalid credentials")
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email }
-  })
+  const valid = await comparePassword(password, user.passwordHash)
 
-  if (!user) {
-    return res.status(404).json({ error: "User not found" })
+  if (!valid) {
+    throw new Error("Invalid credentials")
   }
 
   if (!user.isVerified) {
-    return res.status(403).json({ error: "User not verified" })
+    throw new Error("Email not verified")
   }
 
-  const isValid = await compare(password, user.passwordHash)
-
-  if (!isValid) {
-    return res.status(401).json({ error: "Invalid credentials" })
-  }
+  const { refreshToken, session } = await createRefreshToken(user.id)
 
   const accessToken = generateAccessToken({
     userId: user.id,
-    email: user.email
+    email: user.email,
+    tokenVersion: user.tokenVersion,
+    sessionId: session.id
   })
 
-  const refreshToken = generateRefreshToken({
-    userId: user.id
-  })
-
-  if (!refreshToken) {
-    throw new Error("Refresh token generation failed")
-  }
-  
-  await prisma.refreshToken.create({
-    data: {
-      token: refreshToken,
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    }
-  })
-
-  return res.json({
+  return {
     accessToken,
     refreshToken
-  })
+  }
 }

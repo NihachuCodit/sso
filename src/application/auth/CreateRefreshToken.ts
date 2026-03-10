@@ -1,33 +1,59 @@
 import { prisma } from "../../infrastructure/prisma"
 import { generateRefreshToken } from "../../infrastructure/jwt"
+import { v4 as uuid } from "uuid"
+import { hash } from "bcrypt"
+
+async function hashValue(value?: string) {
+  if (!value) return null
+  return hash(value, 10)
+}
 
 export async function createRefreshToken(
-  userId: string
+  userId: string,
+  deviceFingerprint?: string,
+  ip?: string,
+  userAgent?: string
 ) {
-  let refreshToken: string
 
-  for (let attempts = 0; attempts < 5; attempts++) {
-    try {
-      refreshToken = generateRefreshToken({
-        userId
-      })
+  const deviceFingerprintHash = await hashValue(deviceFingerprint)
+  const ipHash = await hashValue(ip)
+  const userAgentHash = await hashValue(userAgent)
 
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          userId,
-          expiresAt: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
-          )
-        }
-      })
+  // создаём сессию
+  const session = await prisma.session.create({
+    data: {
+      userId,
+      familyId: uuid(),
+      refreshCounter: 0,
 
-      return { refreshToken }
-
-    } catch (e: any) {
-      if (e.code !== "P2002") throw e
+      deviceInfo: {
+        deviceFingerprintHash,
+        ipHash,
+        userAgentHash
+      }
     }
-  }
+  })
 
-  throw new Error("Refresh token creation failed")
+  // генерируем токен
+  const refreshToken = generateRefreshToken({
+    userId,
+    sessionId: session.id,
+    familyId: session.familyId,
+    counter: session.refreshCounter
+  })
+
+  // сохраняем refresh токен в БД
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      sessionId: session.id,
+      used: false,
+      createdAt: new Date(),
+    }
+  })
+
+  return {
+    refreshToken,
+    session
+  }
 }

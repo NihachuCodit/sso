@@ -1,5 +1,6 @@
 import { prisma } from "../../infrastructure/prisma"
-import { hash } from "bcrypt"
+import { hashPassword } from "../../shared/hash"
+import { checkPasswordStrength } from "../security/PasswordStrength"
 
 export async function registerUser({
   email,
@@ -12,21 +13,32 @@ export async function registerUser({
     throw new Error("Email and password are required")
   }
 
-  const existing = await prisma.user.findUnique({
-    where: { email }
-  })
+  // Проверка силы пароля
+  checkPasswordStrength(password)
 
+  // Проверяем, существует ли пользователь
+  const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     throw new Error("User already exists")
   }
 
-  const passwordHash = await hash(password, 10)
+  // Хэшируем пароль через hashPassword
+  const passwordHash = await hashPassword(password)
 
+  // Создаём пользователя
   const user = await prisma.user.create({
     data: {
       email,
       passwordHash,
       isVerified: false
+    }
+  })
+
+  // Добавляем в историю паролей
+  await prisma.userPasswordHistory.create({
+    data: {
+      userId: user.id,
+      passwordHash
     }
   })
 

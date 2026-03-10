@@ -3,7 +3,7 @@ import { rotateRefreshToken } from '../../../application/auth/RotateRefreshToken
 
 const router = Router()
 
-router.post('/', async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body
 

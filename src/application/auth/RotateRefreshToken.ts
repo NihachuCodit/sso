@@ -1,40 +1,49 @@
 import { prisma } from "../../infrastructure/prisma"
-import { verifyRefreshToken } from "../../infrastructure/jwt"
-import { createRefreshToken } from "./CreateRefreshToken"
-import { generateAccessToken } from "../../infrastructure/jwt"
-import { checkRefreshRotationLimit } from "../security/RefreshRotationRateLimiter"
+import { generateRefreshToken } from "../../infrastructure/jwt"
 
+/**
+ * Ротация refresh токена: 
+ * старый токен помечается как used, создаётся новый токен для той же сессии
+ */
 export async function rotateRefreshToken(oldToken: string) {
-  const decoded: any = verifyRefreshToken(oldToken)
-
-  checkRefreshRotationLimit(decoded.userId)
-
-  const storedToken = await prisma.refreshToken.findUnique({
+  // Найти refresh токен и сессию
+  const existing = await prisma.refreshToken.findUnique({
     where: { token: oldToken },
-    include: { user: true }
+    include: { session: true }
   })
 
-  if (!storedToken || storedToken.revoked) {
-    throw new Error("Invalid refresh token")
+  if (!existing) {
+    throw new Error("Refresh token not found")
   }
 
+  if (existing.used) {
+    throw new Error("Refresh token already used")
+  }
+
+  // Пометить старый токен как использованный
   await prisma.refreshToken.update({
-    where: { token: oldToken },
-    data: { revoked: true }
+    where: { id: existing.id },
+    data: { used: true }
   })
 
-  const { refreshToken } = await createRefreshToken(
-    decoded.userId
-  )
+  // Создать новый токен
+  const newToken = generateRefreshToken({
+    userId: existing.session.userId,
+    sessionId: existing.session.id,
+    familyId: existing.session.familyId,
+    counter: existing.session.refreshCounter
+  })
 
-  const accessToken = generateAccessToken({
-    userId: decoded.userId,
-    email: storedToken.user.email,
-    tokenVersion: storedToken.user.tokenVersion
+  const created = await prisma.refreshToken.create({
+    data: {
+      token: newToken,
+      sessionId: existing.session.id,
+      used: false
+    }
   })
 
   return {
-    accessToken,
-    refreshToken
+    accessToken: newToken,   // сразу можно вернуть как accessToken
+    refreshToken: created.token
   }
 }

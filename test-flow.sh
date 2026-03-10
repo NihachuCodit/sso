@@ -1,110 +1,79 @@
 #!/bin/bash
+set -e
 
-BASE_URL="http://localhost:3000"
+EMAIL="test$(date +%s)@example.com"
+PASSWORD="P@a#s@s#w@ord@#$%123@!"
+DB_NAME="sso-idp"
+DB_USER="postgres"
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_PASS="Liqu1d35!"
 
-clean_token() {
-  echo "$1" | tr -d '\r\n" '
-}
+export PGPASSWORD="$DB_PASS"
 
-echo "==== SSO FLOW TEST ===="
+echo "==== START SSO FLOW TEST ===="
 
-# =========================
-# 1. REGISTER USER
-# =========================
+# 1️⃣ Register user
 echo "→ Register user"
+REGISTER_RESP=$(curl -s -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
+echo "$REGISTER_RESP" | jq
 
-curl -s -X POST $BASE_URL/auth/register \
--H "Content-Type: application/json" \
--d '{
-  "email":"test@example.com",
-  "password":"Password123!"
-}' | jq
-
-echo -e "\n"
-
-# =========================
-# 2. LOGIN USER
-# =========================
-echo "→ Login user"
-
-LOGIN_RESPONSE=$(curl -s -X POST $BASE_URL/auth/login \
--H "Content-Type: application/json" \
--d '{
-  "email":"test@example.com",
-  "password":"Password123!"
-}')
-
-echo "$LOGIN_RESPONSE" | jq
-
-ACCESS_TOKEN=$(clean_token "$(echo "$LOGIN_RESPONSE" | jq -r '.accessToken')")
-REFRESH_TOKEN=$(clean_token "$(echo "$LOGIN_RESPONSE" | jq -r '.refreshToken')")
-
-echo "Access Token saved"
-echo "Refresh Token saved"
-
-echo -e "\n"
-
-# =========================
-# 3. REQUEST OTP
-# =========================
+# 2️⃣ Request OTP
 echo "→ Request OTP"
+curl -s -X POST http://localhost:3000/auth/otp \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL\"}" >/dev/null
 
-OTP_RESPONSE=$(curl -s -X POST $BASE_URL/auth/otp \
--H "Content-Type: application/json" \
--d '{
-  "email":"test@example.com"
-}')
+# 3️⃣ Fetch OTP from DB
+OTP=""
+for i in {1..10}; do
+    OTP=$(psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME -t -c \
+        "SELECT code FROM \"Otp\" WHERE \"userId\" = (SELECT id FROM \"User\" WHERE email='$EMAIL') ORDER BY \"createdAt\" DESC LIMIT 1;")
+    OTP=$(echo "$OTP" | tr -d '[:space:]')
+    if [[ -n "$OTP" ]]; then
+        echo "OTP fetched from DB: $OTP"
+        break
+    fi
+    echo "OTP not yet generated, waiting..."
+    sleep 1
+done
 
-echo "$OTP_RESPONSE" | jq
+if [[ -z "$OTP" ]]; then
+    echo "Failed to fetch OTP from DB"
+    exit 1
+fi
 
-OTP=$(echo "$OTP_RESPONSE" | jq -r '.otp')
-
-echo "OTP = $OTP"
-
-echo -e "\n"
-
-# =========================
-# 4. VERIFY OTP
-# =========================
+# 4️⃣ Verify OTP and get tokens
 echo "→ Verify OTP"
+VERIFY_RESP=$(curl -s -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$EMAIL\",\"otp\":\"$OTP\"}")
+echo "$VERIFY_RESP" | jq
 
-VERIFY_RESPONSE=$(curl -s -X POST $BASE_URL/auth/verify-otp \
--H "Content-Type: application/json" \
--d "{
-  \"email\":\"test@example.com\",
-  \"otp\":\"$OTP\"
-}")
+ACCESS_TOKEN=$(echo "$VERIFY_RESP" | jq -r '.accessToken')
+REFRESH_TOKEN=$(echo "$VERIFY_RESP" | jq -r '.refreshToken')
 
-echo "$VERIFY_RESPONSE" | jq
-
-echo -e "\n"
-
-# =========================
-# 5. REFRESH TOKEN
-# =========================
+# 5️⃣ Refresh token
 echo "→ Refresh token"
+REFRESH_RESP=$(curl -s -X POST http://localhost:3000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}")
+echo "$REFRESH_RESP" | jq
 
-REFRESH_RESPONSE=$(curl -s -X POST $BASE_URL/auth/refresh \
--H "Content-Type: application/json" \
--d "{
-  \"refreshToken\":\"$REFRESH_TOKEN\"
-}")
-
-echo "$REFRESH_RESPONSE" | jq
-
-echo -e "\n"
-
-# =========================
-# 6. LOGOUT
-# =========================
+# 6️⃣ Logout
 echo "→ Logout"
+LOGOUT_RESP=$(curl -s -X POST http://localhost:3000/auth/logout \
+  -H "Content-Type: application/json" \
+  -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}")
+echo "$LOGOUT_RESP" | jq
 
-curl -s -X POST $BASE_URL/auth/logout \
--H "Content-Type: application/json" \
--d "{
-  \"refreshToken\":\"$REFRESH_TOKEN\"
-}" | jq
-
-echo -e "\n"
+# 7️⃣ Refresh after logout
+echo "→ Refresh after logout"
+REFRESH_AFTER_LOGOUT=$(curl -s -X POST http://localhost:3000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}")
+echo "$REFRESH_AFTER_LOGOUT" | jq
 
 echo "==== TEST COMPLETED ===="

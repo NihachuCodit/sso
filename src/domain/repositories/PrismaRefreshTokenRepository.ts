@@ -1,11 +1,12 @@
 import { prisma } from '../../infrastructure/prisma'
-import { RefreshTokenRepository } from '../../domain/repositories/RefreshTokenRepository'
+import { RefreshTokenRepository } from './RefreshTokenRepository'
 
 export class PrismaRefreshTokenRepository implements RefreshTokenRepository {
 
   async findByToken(token: string) {
     return prisma.refreshToken.findUnique({
-      where: { token }
+      where: { token },
+      include: { user: true }
     })
   }
 
@@ -16,11 +17,17 @@ export class PrismaRefreshTokenRepository implements RefreshTokenRepository {
     })
   }
 
-  async create(token: string, userId: string, expiresAt: Date) {
+  async create(
+    token: string,
+    userId: string,
+    sessionId: string,
+    expiresAt: Date
+  ) {
     await prisma.refreshToken.create({
       data: {
         token,
         userId,
+        sessionId,
         expiresAt
       }
     })

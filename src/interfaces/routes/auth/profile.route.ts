@@ -3,7 +3,7 @@ import { authMiddleware, AuthRequest } from '../../../infrastructure/middleware/
 
 const router = Router()
 
-router.get('/', authMiddleware, (req: AuthRequest, res: Response) => {
+router.get("/", authMiddleware, (req: AuthRequest, res: Response) => {
   res.json({
     user: req.user
   })

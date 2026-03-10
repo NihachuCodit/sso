@@ -20,9 +20,19 @@ model User {
 
   otps Otp[]
 
-  RefreshToken RefreshToken[]
+  sessions        Session[]
+  passwordHistory UserPasswordHistory[]
+}
 
-  sessions Session[]
+model UserPasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Otp {
@@ -34,18 +44,18 @@ model Otp {
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  revoked   Boolean  @default(false)
-  expiresAt DateTime
+  id        String  @id @default(uuid())
+  token     String  @unique
+  session   Session @relation(fields: [sessionId], references: [id])
+  sessionId String
+
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
@@ -55,11 +65,16 @@ model Session {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  deviceFingerprint String?
+  familyId       String
+  refreshCounter Int    @default(0)
 
-  revoked Boolean @default(false)
+  deviceInfo Json? // хранение deviceFingerprintHash, ipHash, userAgentHash
 
+  revoked    Boolean  @default(false)
   lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
-  createdAt DateTime @default(now())
+  refreshTokens RefreshToken[]
+
+  @@index([familyId])
 }
