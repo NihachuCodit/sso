@@ -57,6 +57,8 @@ model RefreshToken {
 
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([sessionId])
 }
 
 model Session {

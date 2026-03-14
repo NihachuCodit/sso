@@ -1,105 +1,88 @@
 # SSO Identity Provider
 
-## 1. Requirements
+JWT-based Single Sign-On IdP with OTP email verification, refresh token rotation, and session management.
+
+## Requirements
 
 - Node.js >= 18
-- npm >= 9
 - PostgreSQL >= 14
-- Docker (optional)
-- Git
 
-## 2. Clone repository
-```bash 
-git clone https://github.com/<your-username>/sso-idp.git
-cd sso-idp
-```
-## 3. Install dependencies
-```bash 
+## Setup
+
+```bash
 npm install
 ```
-## 4. Environment configuration
 
-Create .env file in the project root:
-```bash 
+Create `.env`:
+
+```env
 DATABASE_URL="postgresql://postgres:password@localhost:5432/sso_db"
-JWT_SECRET="your_super_secret_key"
+JWT_SECRET="change-me-to-a-long-random-string"
 PORT=3000
 ```
-## 5. Database setup
 
-Create database manually:
-```bash 
-CREATE DATABASE sso_db;
+Run migrations and (optionally) seed an admin user:
+
+```bash
+npm run db:migrate
+npm run seed
 ```
-Run Prisma migrations:
-```bash 
-npx prisma migrate dev
-```
-(Optional) Open Prisma Studio:
-```bash 
-npx prisma studio
-```
-## 6. Run development server
-```bash 
+
+## Development
+
+```bash
 npm run dev
 ```
-Server starts at:
 
-http://localhost:3000
+Server starts at `http://localhost:3000`.
 
-## 7. Test authentication flow
+## API
 
-Run automated test script:
-```bash 
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/auth/register` | — | Register a new user |
+| POST | `/auth/otp` | — | Request OTP (sent to email) |
+| POST | `/auth/verify-otp` | — | Verify OTP → returns tokens |
+| POST | `/auth/login` | — | Login with password → returns tokens |
+| POST | `/auth/refresh` | — | Rotate refresh token |
+| POST | `/auth/logout` | — | Revoke session |
+| GET | `/auth/profile` | Bearer | Current user from access token |
+| GET | `/sessions/:id` | — | Session details |
+
+## Admin CLI
+
+```bash
+npm run cli -- <command>
+
+# User management
+npm run cli -- user:list
+npm run cli -- user:get admin@example.com
+npm run cli -- user:verify user@example.com
+npm run cli -- user:revoke user@example.com   # invalidates all tokens
+npm run cli -- user:delete user@example.com
+
+# Session management
+npm run cli -- session:list user@example.com
+npm run cli -- session:revoke <session-id>
+
+# Maintenance
+npm run cli -- otp:purge    # delete expired / used OTPs
+npm run cli -- stats        # system-wide counts
+```
+
+## Test flow
+
+Runs a full register → OTP → verify → refresh → logout cycle against a live server. Requires `psql` and `jq`.
+
+```bash
 chmod +x test-flow.sh
 ./test-flow.sh
 ```
-This script performs:
 
-• Register user
-• Login
-• Request OTP
-• Verify OTP
-• Refresh token
-• Logout
+## Useful commands
 
-## 8. Manual API testing
-
-Example: Login request
-```bash 
-curl -X POST http://localhost:3000/auth/login \
--H "Content-Type: application/json" \
--d '{
-  "email":"test@example.com",
-  "password":"Password123!"
-}'
-```
-## 9. Production build
-```bash 
-npm run build
-npm start
-```
-## 10. Docker (optional)
-
-Build container:
-```bash 
-docker build -t sso-idp .
-```
-Run container:
-```bash 
-docker run -p 3000:3000 --env-file .env sso-idp
-```
-## 11. Useful commands
-
-Run tests: 
-```bash 
-npm test
-```
-Generate Prisma client:
-```bash 
-npx prisma generate
-```
-Reset database:
-```bash 
-npx prisma migrate reset
+```bash
+npm run db:studio    # Prisma Studio
+npm run db:migrate   # Run pending migrations
+npx prisma migrate reset   # Reset DB (dev only)
 ```

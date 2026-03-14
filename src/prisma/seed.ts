@@ -1,18 +1,22 @@
-import { prisma } from './prisma.config'
+import { prisma } from "../infrastructure/prisma"
+import { hashPassword } from "../shared/hash"
 
 async function main() {
-  await prisma.user.create({
-    data: {
-      email: 'admin@example.com',
-      passwordHash: 'hash123',
-      isVerified: true,
-    },
+  const passwordHash = await hashPassword("Admin@Secure#999!")
+
+  await prisma.user.upsert({
+    where: { email: "admin@example.com" },
+    update: {},
+    create: {
+      email: "admin@example.com",
+      passwordHash,
+      isVerified: true
+    }
   })
-  console.log('User created')
+
+  console.log("Seed complete — admin@example.com created (or already exists)")
 }
 
 main()
-  .catch(e => console.error(e))
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .catch(e => { console.error(e); process.exit(1) })
+  .finally(() => prisma.$disconnect())
