@@ -1,0 +1,5 @@
+-- AlterEnum: add anomaly detection event types
+ALTER TYPE "AuditEventType" ADD VALUE 'ANOMALY_NEW_DEVICE';
+ALTER TYPE "AuditEventType" ADD VALUE 'ANOMALY_NEW_IP';
+ALTER TYPE "AuditEventType" ADD VALUE 'ANOMALY_RAPID_LOGIN';
+ALTER TYPE "AuditEventType" ADD VALUE 'ANOMALY_EXCESSIVE_SESSIONS';

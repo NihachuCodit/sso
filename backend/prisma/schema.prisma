@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  email        String @unique
+  passwordHash String
+
+  tokenVersion Int @default(0)
+
+  createdAt  DateTime @default(now())
+  isVerified Boolean  @default(false)
+  isAdmin    Boolean  @default(false)
+  isLocked   Boolean  @default(false)
+
+  otps Otp[]
+
+  sessions        Session[]
+  passwordHistory UserPasswordHistory[]
+}
+
+model UserPasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String  @id @default(uuid())
+  token     String  @unique
+  session   Session @relation(fields: [sessionId], references: [id])
+  sessionId String
+
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  familyId       String
+  refreshCounter Int    @default(0)
+
+  deviceInfo Json? // { deviceFingerprintHash, ipHash, userAgentHash } — all SHA256
+
+  revoked    Boolean  @default(false)
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  refreshTokens RefreshToken[]
+
+  @@index([familyId])
+  @@index([userId])
+}
+
+// ─── Audit Logging ────────────────────────────────────────────────────────────
+
+enum AuditEventType {
+  // Registration & verification
+  USER_REGISTERED
+  USER_VERIFIED
+
+  // Authentication
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+
+  // OTP
+  OTP_REQUESTED
+  OTP_VERIFIED
+  OTP_FAILED
+  OTP_BRUTE_FORCE
+
+  // Token lifecycle
+  TOKEN_REFRESHED
+  TOKEN_REUSE_DETECTED
+
+  // Session management
+  LOGOUT_ALL
+
+  // Admin operations
+  ADMIN_USER_VERIFIED
+  ADMIN_USER_DELETED
+  ADMIN_USER_REVOKED
+  ADMIN_SESSION_REVOKED
+  ADMIN_USER_LOCKED
+  ADMIN_USER_UNLOCKED
+  ADMIN_GRANT_ADMIN
+  ADMIN_REVOKE_ADMIN
+
+  // Anomaly detection
+  ANOMALY_NEW_DEVICE
+  ANOMALY_NEW_IP
+  ANOMALY_RAPID_LOGIN
+  ANOMALY_EXCESSIVE_SESSIONS
+  ANOMALY_FINGERPRINT_CHANGED
+
+  // Login lockout
+  LOGIN_LOCKED
+
+  // Password lifecycle
+  PASSWORD_CHANGED
+  PASSWORD_RESET
+
+  // Session management (user-initiated remote revoke)
+  SESSION_REVOKED
+}
+
+model AuditLog {
+  id        String         @id @default(uuid())
+  eventType AuditEventType
+  userId    String?
+  sessionId String?
+  ip        String?
+  userAgent String?
+  success   Boolean
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sessionId])
+}
