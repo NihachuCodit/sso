@@ -21,6 +21,7 @@ import sessionsRoute       from "./interfaces/routes/sessions/sessions.route"
 import adminUsersRoute     from "./interfaces/routes/admin/users.route"
 import adminAuditLogsRoute from "./interfaces/routes/admin/auditLogs.route"
 import devOtpRoute         from "./interfaces/routes/dev/devOtp.route"
+import { startCleanupJob } from "./infrastructure/cleanup/cleanupJob"
 
 // ─── Env validation ───────────────────────────────────────────────────────────
 
@@ -103,6 +104,8 @@ const PORT = Number(process.env.PORT) || 3000
 
 async function start() {
   await initRateLimiters()
+
+  startCleanupJob()
 
   const server = app.listen(PORT, () => {
     const cyan  = "\x1b[36m"

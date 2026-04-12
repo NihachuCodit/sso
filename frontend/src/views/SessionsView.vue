@@ -2,6 +2,18 @@
   <div class="page-section">
     <p class="page-section-title">Active sessions</p>
 
+    <!-- Filters -->
+    <div class="sessions-toolbar">
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select v-model="statusFilter" class="filter-select" @change="fetchSessions(1)">
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="revoked">Revoked</option>
+        </select>
+      </div>
+    </div>
+
     <p v-if="loadError" class="form-error">{{ loadError }}</p>
 
     <div v-if="loading" class="spinner"></div>
@@ -33,6 +45,27 @@
         </button>
       </li>
     </ul>
+
+    <!-- Pagination -->
+    <div v-if="pages > 1" class="pagination">
+      <button
+        class="btn-sm"
+        :disabled="page === 1"
+        @click="fetchSessions(page - 1)"
+      >
+        ‹ Prev
+      </button>
+
+      <span class="pagination-info">{{ page }} / {{ pages }}</span>
+
+      <button
+        class="btn-sm"
+        :disabled="page === pages"
+        @click="fetchSessions(page + 1)"
+      >
+        Next ›
+      </button>
+    </div>
   </div>
 </template>
 
@@ -51,22 +84,35 @@ interface Session {
   createdAt:      string
 }
 
-const sessions  = ref<Session[]>([])
-const loading   = ref(true)
-const loadError = ref("")
-const revoking  = ref<string | null>(null)
-const toast     = useToast()
+const LIMIT = 20
 
-onMounted(async () => {
+const sessions    = ref<Session[]>([])
+const loading     = ref(true)
+const loadError   = ref("")
+const revoking    = ref<string | null>(null)
+const page        = ref(1)
+const pages       = ref(1)
+const statusFilter = ref<"all" | "active" | "revoked">("all")
+const toast       = useToast()
+
+async function fetchSessions(toPage = 1) {
+  loading.value   = true
+  loadError.value = ""
+  page.value      = toPage
   try {
-    const { data } = await api.get<{ sessions: Session[] }>("/sessions")
+    const { data } = await api.get<{ sessions: Session[]; pages: number }>(
+      `/sessions?status=${statusFilter.value}&limit=${LIMIT}&page=${toPage}`,
+    )
     sessions.value = data.sessions
+    pages.value    = data.pages
   } catch (err: any) {
     loadError.value = err.response?.data?.error ?? err.message
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(() => fetchSessions(1))
 
 async function revoke(id: string) {
   revoking.value = id
@@ -75,6 +121,9 @@ async function revoke(id: string) {
     const s = sessions.value.find(s => s.id === id)
     if (s) s.revoked = true
     toast.show("Session revoked", "success")
+    // If filtered to active-only, remove the now-revoked entry
+    if (statusFilter.value === "active")
+      sessions.value = sessions.value.filter(s => s.id !== id)
   } catch (err: any) {
     loadError.value = err.response?.data?.error ?? err.message
   } finally {

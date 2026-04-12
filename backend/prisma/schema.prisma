@@ -10,8 +10,9 @@ datasource db {
 model User {
   id String @id @default(uuid())
 
-  email        String @unique
+  email        String  @unique
   passwordHash String
+  displayName  String?
 
   tokenVersion Int @default(0)
 

@@ -12,4 +12,8 @@ export const navigationGuard: NavigationGuardWithThis<undefined> = async (to) =>
   if (to.meta.public && auth.isLoggedIn) {
     return { path: "/profile" }
   }
+
+  if (to.meta.admin && !auth.user?.isAdmin) {
+    return { path: "/profile" }
+  }
 }

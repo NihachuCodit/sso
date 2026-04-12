@@ -6,6 +6,10 @@
       <div class="app-nav-links">
         <RouterLink to="/profile"  class="app-nav-link" activeClass="active">Profile</RouterLink>
         <RouterLink to="/sessions" class="app-nav-link" activeClass="active">Sessions</RouterLink>
+        <template v-if="auth.user?.isAdmin">
+          <RouterLink to="/admin/users"      class="app-nav-link" activeClass="active">Users</RouterLink>
+          <RouterLink to="/admin/audit-logs" class="app-nav-link" activeClass="active">Audit logs</RouterLink>
+        </template>
       </div>
 
       <div class="app-nav-user">

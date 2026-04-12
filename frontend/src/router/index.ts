@@ -1,6 +1,13 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { navigationGuard } from "./guard"
 
+declare module "vue-router" {
+  interface RouteMeta {
+    public?: boolean
+    admin?:  boolean
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -20,6 +27,10 @@ const router = createRouter({
         { path: "profile",        component: () => import("../views/ProfileView.vue") },
         { path: "change-password",component: () => import("../views/ChangePasswordView.vue") },
         { path: "sessions",       component: () => import("../views/SessionsView.vue") },
+
+        // ── Admin ──────────────────────────────────────────────────────────
+        { path: "admin/users",      component: () => import("../views/AdminUsersView.vue"),     meta: { admin: true } },
+        { path: "admin/audit-logs", component: () => import("../views/AdminAuditLogsView.vue"), meta: { admin: true } },
       ],
     },
   ],

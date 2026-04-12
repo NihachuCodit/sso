@@ -29,6 +29,11 @@ const revokedSession = {
   revoked: true,
 }
 
+// Default paginated response
+function sessionsResponse(sessions: typeof activeSession[]) {
+  return { data: { sessions, pages: 1 } }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 let pinia: ReturnType<typeof createPinia>
 
@@ -49,17 +54,18 @@ beforeEach(() => {
 
 describe("SessionsView", () => {
   it("fetches and renders sessions on mount", async () => {
-    mockGet.mockResolvedValue({ data: { sessions: [{ ...activeSession }, { ...revokedSession }] } })
+    mockGet.mockResolvedValue(sessionsResponse([{ ...activeSession }, { ...revokedSession }]))
     const wrapper = mountView()
     await flushPromises()
 
     const items = wrapper.findAll(".session-item")
     expect(items).toHaveLength(2)
-    expect(mockGet).toHaveBeenCalledWith("/sessions")
+    // URL now includes query params for status/limit/page
+    expect(mockGet).toHaveBeenCalledWith(expect.stringContaining("/sessions"))
   })
 
   it("shows 'Active' badge for non-revoked and 'Revoked' for revoked sessions", async () => {
-    mockGet.mockResolvedValue({ data: { sessions: [{ ...activeSession }, { ...revokedSession }] } })
+    mockGet.mockResolvedValue(sessionsResponse([{ ...activeSession }, { ...revokedSession }]))
     const wrapper = mountView()
     await flushPromises()
 
@@ -69,7 +75,7 @@ describe("SessionsView", () => {
   })
 
   it("shows 'Unknown device' when deviceInfo is null", async () => {
-    mockGet.mockResolvedValue({ data: { sessions: [{ ...activeSession }] } })
+    mockGet.mockResolvedValue(sessionsResponse([{ ...activeSession }]))
     const wrapper = mountView()
     await flushPromises()
 
@@ -77,7 +83,7 @@ describe("SessionsView", () => {
   })
 
   it("calls DELETE /sessions/:id and marks the session revoked in place", async () => {
-    mockGet.mockResolvedValue({ data: { sessions: [{ ...activeSession }] } })
+    mockGet.mockResolvedValue(sessionsResponse([{ ...activeSession }]))
     mockDelete.mockResolvedValue({ data: {} })
     const wrapper = mountView()
     await flushPromises()
@@ -100,7 +106,7 @@ describe("SessionsView", () => {
   })
 
   it("shows an error when the revoke API call fails", async () => {
-    mockGet.mockResolvedValue({ data: { sessions: [{ ...activeSession }] } })
+    mockGet.mockResolvedValue(sessionsResponse([{ ...activeSession }]))
     mockDelete.mockRejectedValue({ response: { data: { error: "Session not found" } } })
     const wrapper = mountView()
     await flushPromises()
@@ -115,7 +121,7 @@ describe("SessionsView", () => {
 
   it("renders deviceInfo userAgent from a JSON string", async () => {
     const session = { ...activeSession, deviceInfo: JSON.stringify({ userAgent: "Chrome/120" }) }
-    mockGet.mockResolvedValue({ data: { sessions: [session] } })
+    mockGet.mockResolvedValue(sessionsResponse([session]))
     const wrapper = mountView()
     await flushPromises()
 
@@ -124,7 +130,7 @@ describe("SessionsView", () => {
 
   it("falls back to raw string when deviceInfo is not valid JSON", async () => {
     const session = { ...activeSession, deviceInfo: "raw-fingerprint" }
-    mockGet.mockResolvedValue({ data: { sessions: [session] } })
+    mockGet.mockResolvedValue(sessionsResponse([session]))
     const wrapper = mountView()
     await flushPromises()
 

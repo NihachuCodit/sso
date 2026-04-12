@@ -69,7 +69,13 @@ function startCooldown() {
   }, 1000)
 }
 
-onMounted(() => startCooldown())
+onMounted(() => {
+  if (!email.value) {
+    router.replace("/login")
+    return
+  }
+  startCooldown()
+})
 onUnmounted(() => { if (timer) clearInterval(timer) })
 
 async function submit() {

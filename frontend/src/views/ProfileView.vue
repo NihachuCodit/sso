@@ -13,21 +13,21 @@
       </div>
     </div>
 
-    <!-- Profile editing — UI ready, wired to backend later -->
     <div class="page-section">
       <p class="page-section-title">Profile</p>
 
       <div v-if="!editingProfile">
         <div class="field-row">
           <span class="field-label">Display name</span>
-          <span class="field-value">{{ displayName || "—" }}</span>
+          <span class="field-value">{{ auth.user?.displayName || "—" }}</span>
         </div>
-        <button class="btn-ghost" style="margin-top: 1rem" @click="editingProfile = true">
+        <button class="btn-ghost" style="margin-top: 1rem" @click="startEdit">
           Edit profile
         </button>
       </div>
 
       <form v-else @submit.prevent="saveProfile">
+        <p v-if="profileError" class="form-error">{{ profileError }}</p>
         <div class="form-field">
           <label for="displayName">Display name</label>
           <input
@@ -39,7 +39,9 @@
           />
         </div>
         <div style="display: flex; gap: 0.75rem; margin-top: 0.25rem">
-          <button class="btn" type="submit" style="max-width: 120px">Save</button>
+          <button class="btn" type="submit" :disabled="savingProfile" style="max-width: 120px">
+            {{ savingProfile ? "Saving…" : "Save" }}
+          </button>
           <button type="button" class="btn-ghost" @click="editingProfile = false">Cancel</button>
         </div>
       </form>
@@ -70,6 +72,7 @@
 <script setup lang="ts">
 import { ref } from "vue"
 import { useRouter } from "vue-router"
+import { api } from "../api/client"
 import { useAuthStore } from "../stores/auth"
 import { useToast } from "../composables/useToast"
 
@@ -78,17 +81,35 @@ const auth           = useAuthStore()
 const toast          = useToast()
 const loggingOut     = ref(false)
 const editingProfile = ref(false)
+const savingProfile  = ref(false)
+const profileError   = ref("")
 const displayName    = ref("")
+
+function startEdit() {
+  displayName.value    = auth.user?.displayName ?? ""
+  profileError.value   = ""
+  editingProfile.value = true
+}
+
+async function saveProfile() {
+  profileError.value  = ""
+  savingProfile.value = true
+  try {
+    await api.patch("/auth/profile", { displayName: displayName.value })
+    // Sync the store so the new name is visible immediately
+    await auth.fetchProfile()
+    editingProfile.value = false
+    toast.show("Profile saved", "success")
+  } catch (err: any) {
+    profileError.value = err.response?.data?.error ?? err.message
+  } finally {
+    savingProfile.value = false
+  }
+}
 
 async function handleLogoutAll() {
   loggingOut.value = true
   await auth.logoutAll()
   router.push("/login")
-}
-
-function saveProfile() {
-  // TODO: wire up to PATCH /auth/profile once backend endpoint is ready
-  editingProfile.value = false
-  toast.show("Profile saved", "success")
 }
 </script>

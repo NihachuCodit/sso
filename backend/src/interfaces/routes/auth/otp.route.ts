@@ -16,8 +16,9 @@ router.post("/", async (req: Request, res: Response) => {
     const normalized = normalizeEmail(email)
     const user = await userRepository.findByEmail(normalized)
 
+    // Always return 200 — do not reveal whether the email is registered
     if (!user)
-      return res.status(404).json({ error: "User not found" })
+      return res.json({ message: "If that email is registered you will receive a code" })
 
     await generateOtp(user.id, normalized)
 

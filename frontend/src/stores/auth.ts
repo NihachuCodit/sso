@@ -3,8 +3,10 @@ import { ref, computed } from "vue"
 import { api } from "../api/client"
 
 export interface AuthUser {
-  userId: string
-  email:  string
+  userId:      string
+  email:       string
+  isAdmin:     boolean
+  displayName: string | null
 }
 
 export const useAuthStore = defineStore("auth", () => {
