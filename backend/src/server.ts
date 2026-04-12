@@ -24,7 +24,7 @@ import devOtpRoute         from "./interfaces/routes/dev/devOtp.route"
 
 // ─── Env validation ───────────────────────────────────────────────────────────
 
-const REQUIRED_ENV = ["JWT_SECRET", "JWT_REFRESH_SECRET", "DATABASE_URL", "RESEND_API_KEY"] as const
+const REQUIRED_ENV = ["JWT_SECRET", "JWT_REFRESH_SECRET", "DATABASE_URL"] as const
 
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
@@ -32,6 +32,14 @@ for (const key of REQUIRED_ENV) {
     process.exit(1)
   }
 }
+
+const hasSmtp   = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)
+const hasResend = !!process.env.RESEND_API_KEY
+if (!hasSmtp && !hasResend) {
+  console.warn("[startup] Warning: no email transport configured — OTP delivery will fail. Set SMTP_* or RESEND_API_KEY.")
+}
+if (hasSmtp)   console.log("[email] transport: SMTP")
+if (hasResend && !hasSmtp) console.log("[email] transport: Resend")
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
