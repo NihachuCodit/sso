@@ -17,6 +17,8 @@ const mockPush      = vi.fn()
 // ── API mock ───────────────────────────────────────────────────────────────
 vi.mock("../../api/client", () => ({ api: { post: vi.fn() } }))
 
+vi.mock("../../composables/useToast", () => ({ useToast: () => ({ show: vi.fn() }) }))
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 let pinia: ReturnType<typeof createPinia>
 
@@ -55,7 +57,8 @@ describe("ProfileView", () => {
     vi.spyOn(auth, "logoutAll").mockResolvedValue()
 
     const wrapper = mountView()
-    await wrapper.find("button").trigger("click")
+    const btn = wrapper.findAll("button").find(b => b.text().includes("Sign out all devices"))!
+    await btn.trigger("click")
     await flushPromises()
 
     expect(auth.logoutAll).toHaveBeenCalled()

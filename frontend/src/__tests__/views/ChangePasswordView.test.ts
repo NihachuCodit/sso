@@ -58,7 +58,7 @@ beforeEach(() => {
 describe("ChangePasswordView", () => {
   it("shows a validation error when passwords do not match without calling the API", async () => {
     const wrapper = mountView()
-    await fillAndSubmit(wrapper, "Old1!", "New1!", "Different!")
+    await fillAndSubmit(wrapper, "OldPass1!", "NewPass1!", "Different!")
 
     expect(wrapper.find(".form-error").text()).toBe("Passwords do not match")
     expect(mockPost).not.toHaveBeenCalled()
