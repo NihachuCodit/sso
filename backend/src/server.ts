@@ -126,7 +126,7 @@ ${cyan}  ███████╗███████╗ ██████╗ 
   ${green}▸ Health${reset}     GET /
   ${green}▸ Auth${reset}       POST /auth/{register,login,otp,verify-otp,refresh,logout,logout-all}
   ${green}▸ Password${reset}   POST /auth/{change-password,reset-password}
-  ${green}▸ Profile${reset}    GET  /auth/profile
+  ${green}▸ Profile${reset}    GET|PATCH /auth/profile
   ${green}▸ Sessions${reset}   GET|DELETE /sessions  ·  GET /sessions/:id
   ${dim}─────────────────────────────────────────────────${reset}
 `)

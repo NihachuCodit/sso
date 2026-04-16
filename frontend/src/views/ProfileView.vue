@@ -52,7 +52,7 @@
       <p class="page-section-subtitle">
         Changing your password will sign you out of all devices.
       </p>
-      <RouterLink to="/change-password" class="btn" style="max-width: 200px">
+      <RouterLink to="/change-password" class="btn" style="max-width: 200px; background: #3b82f6;">
         Change password
       </RouterLink>
     </div>
@@ -62,7 +62,7 @@
       <p class="page-section-subtitle">
         Sign out of all devices, including this one.
       </p>
-      <button class="btn" style="max-width: 200px; background: var(--error)" @click="handleLogoutAll" :disabled="loggingOut">
+      <button class="btn" style="max-width: 200px; background: #ef4444" @click="handleLogoutAll" :disabled="loggingOut">
         {{ loggingOut ? "Signing out…" : "Sign out all devices" }}
       </button>
     </div>
