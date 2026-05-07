@@ -34,13 +34,12 @@ for (const key of REQUIRED_ENV) {
   }
 }
 
-const hasSmtp   = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)
-const hasResend = !!process.env.RESEND_API_KEY
-if (!hasSmtp && !hasResend) {
-  console.warn("[startup] Warning: no email transport configured — OTP delivery will fail. Set SMTP_* or RESEND_API_KEY.")
+const hasSmtp = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)
+if (!hasSmtp) {
+  console.warn("[startup] Warning: no email transport configured — OTP delivery will fail. Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD.")
+} else {
+  console.log("[email] transport: SMTP")
 }
-if (hasSmtp)   console.log("[email] transport: SMTP")
-if (hasResend && !hasSmtp) console.log("[email] transport: Resend")
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
@@ -82,10 +81,9 @@ app.use("/admin/audit-logs",     adminAuditLogsRoute)
 
 if (process.env.NODE_ENV !== "production") {
   app.use("/dev", devOtpRoute)
-  console.log("[dev] GET /dev/otp enabled")
 }
 
-app.get("/", (_, res) => res.json({ status: "ok", service: "sso-idp" }))
+app.get("/",(_, res) => res.json({ status: "ok", service: "sso-idp" }))
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 

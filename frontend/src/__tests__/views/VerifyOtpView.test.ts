@@ -28,8 +28,7 @@ function mountView() {
     global: {
       plugins: [pinia],
       stubs: {
-        AuthCard:     { template: "<div><slot /></div>" },
-        DevOtpBanner: true,
+        AuthCard: { template: "<div><slot /></div>" },
       },
     },
   })

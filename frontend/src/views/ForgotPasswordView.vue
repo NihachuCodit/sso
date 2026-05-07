@@ -1,7 +1,7 @@
 <template>
   <AuthCard
-    title="Reset password"
-    subtitle="Enter your email and we'll send you a code"
+    title="Сброс пароля"
+    subtitle="Введите email, и мы отправим вам код"
   >
     <p v-if="error" class="form-error">{{ error }}</p>
 
@@ -19,12 +19,12 @@
       </div>
 
       <button class="btn" type="submit" :disabled="loading">
-        {{ loading ? "Sending…" : "Send code" }}
+        {{ loading ? "Отправка…" : "Отправить код" }}
       </button>
     </form>
 
     <div class="form-links">
-      <span><RouterLink to="/login">Back to sign in</RouterLink></span>
+      <span><RouterLink to="/login">Назад ко входу</RouterLink></span>
     </div>
   </AuthCard>
 </template>

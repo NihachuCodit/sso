@@ -1,18 +1,18 @@
 <template>
   <div class="page-section" style="max-width: 480px">
-    <p class="page-section-title">Change password</p>
+    <p class="page-section-title">Смена пароля</p>
     <p class="page-section-subtitle">
-      You will be signed out of all devices after changing your password.
+      После смены пароля вы будете выведены со всех устройств.
     </p>
 
     <div v-if="success" class="success-msg">
-      Password changed. Please sign in again.
+      Пароль изменён. Войдите снова.
     </div>
     <p v-if="error" class="form-error">{{ error }}</p>
 
     <form v-if="!success" @submit.prevent="submit">
       <div class="form-field">
-        <label for="current">Current password</label>
+        <label for="current">Текущий пароль</label>
         <input
           id="current"
           v-model="currentPassword"
@@ -24,7 +24,7 @@
       </div>
 
       <div class="form-field">
-        <label for="new">New password</label>
+        <label for="new">Новый пароль</label>
         <input
           id="new"
           v-model="newPassword"
@@ -38,7 +38,7 @@
       </div>
 
       <div class="form-field">
-        <label for="confirm">Confirm new password</label>
+        <label for="confirm">Подтвердите пароль</label>
         <input
           id="confirm"
           v-model="confirm"
@@ -48,20 +48,20 @@
           required
           @blur="confirmTouched = true"
         />
-        <p v-if="confirmTouched && confirm && newPassword !== confirm" class="field-hint">Passwords do not match</p>
+        <p v-if="confirmTouched && confirm && newPassword !== confirm" class="field-hint">Пароли не совпадают</p>
       </div>
 
       <div style="display: flex; gap: 0.75rem; margin-top: 0.25rem">
         <button class="btn" type="submit" :disabled="loading">
-          {{ loading ? "Saving…" : "Change password" }}
+          {{ loading ? "Сохранение…" : "Сменить пароль" }}
         </button>
-        <RouterLink to="/profile" class="btn-ghost">Cancel</RouterLink>
+        <RouterLink to="/profile" class="btn-ghost">Отмена</RouterLink>
       </div>
     </form>
 
     <div v-if="success" style="margin-top: 0.5rem">
       <RouterLink to="/login" class="btn" style="max-width: 160px" @click="auth.clear()">
-        Sign in again
+        Войти снова
       </RouterLink>
     </div>
   </div>
@@ -92,7 +92,7 @@ async function submit() {
   if (pwError.value) return
   error.value = ""
   if (newPassword.value !== confirm.value) {
-    error.value = "Passwords do not match"
+    error.value = "Пароли не совпадают"
     return
   }
   loading.value = true

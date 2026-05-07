@@ -1,5 +1,5 @@
 <template>
-  <AuthCard title="Sign in" subtitle="Welcome back">
+  <AuthCard title="Войти" subtitle="С возвращением!">
     <p v-if="error" class="form-error">{{ error }}</p>
 
     <form @submit.prevent="submit">
@@ -16,7 +16,7 @@
       </div>
 
       <div class="form-field">
-        <label for="password">Password</label>
+        <label for="password">Пароль</label>
         <input
           id="password"
           v-model="password"
@@ -28,16 +28,16 @@
       </div>
 
       <button class="btn" type="submit" :disabled="loading">
-        {{ loading ? "Signing in…" : "Sign in" }}
+        {{ loading ? "Вход…" : "Войти" }}
       </button>
     </form>
 
     <div class="form-links">
       <span>
-        <RouterLink to="/forgot-password">Forgot your password?</RouterLink>
+        <RouterLink to="/forgot-password">Забыли пароль?</RouterLink>
       </span>
       <span>
-        No account? <RouterLink to="/register">Create one</RouterLink>
+        Нет аккаунта? <RouterLink to="/register">Зарегистрироваться</RouterLink>
       </span>
     </div>
   </AuthCard>

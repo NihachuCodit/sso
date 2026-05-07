@@ -1,6 +1,6 @@
 export function passwordError(pw: string): string {
-  if (pw.length < 8) return "Minimum 8 characters"
+  if (pw.length < 8) return "Минимум 8 символов"
   if (!/[0-9!@#$%^&*()\-_=+[\]{};':",.<>/?\\|`~]/.test(pw))
-    return "Must include a number or special character"
+    return "Должен содержать цифру или спецсимвол"
   return ""
 }

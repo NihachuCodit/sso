@@ -1,15 +1,13 @@
 <template>
   <AuthCard
-    title="Set new password"
-    :subtitle="email ? `Enter the code sent to ${email}` : 'Enter your code and a new password'"
+    title="Новый пароль"
+    :subtitle="email ? `Введите код, отправленный на ${email}` : 'Введите код и новый пароль'"
   >
-    <DevOtpBanner :email="email" />
-
     <p v-if="error" class="form-error">{{ error }}</p>
 
     <form @submit.prevent="submit">
       <div class="form-field">
-        <label for="otp">6-digit code</label>
+        <label for="otp">6-значный код</label>
         <input
           id="otp"
           v-model="otp"
@@ -23,7 +21,7 @@
       </div>
 
       <div class="form-field">
-        <label for="password">New password</label>
+        <label for="password">Новый пароль</label>
         <input
           id="password"
           v-model="newPassword"
@@ -37,7 +35,7 @@
       </div>
 
       <div class="form-field">
-        <label for="confirm">Confirm new password</label>
+        <label for="confirm">Подтвердите пароль</label>
         <input
           id="confirm"
           v-model="confirm"
@@ -47,16 +45,16 @@
           required
           @blur="confirmTouched = true"
         />
-        <p v-if="confirmTouched && confirm && newPassword !== confirm" class="field-hint">Passwords do not match</p>
+        <p v-if="confirmTouched && confirm && newPassword !== confirm" class="field-hint">Пароли не совпадают</p>
       </div>
 
       <button class="btn" type="submit" :disabled="loading">
-        {{ loading ? "Resetting…" : "Reset password" }}
+        {{ loading ? "Сброс…" : "Сбросить пароль" }}
       </button>
     </form>
 
     <div class="form-links">
-      <span><RouterLink to="/login">Back to sign in</RouterLink></span>
+      <span><RouterLink to="/login">Назад ко входу</RouterLink></span>
     </div>
   </AuthCard>
 </template>
@@ -66,7 +64,6 @@ import { ref, computed } from "vue"
 import { useRouter } from "vue-router"
 import { api } from "../api/client"
 import AuthCard from "../components/AuthCard.vue"
-import DevOtpBanner from "../components/DevOtpBanner.vue"
 import { passwordError } from "../utils/validation"
 
 const router = useRouter()
@@ -88,7 +85,7 @@ async function submit() {
   if (pwError.value) return
   error.value = ""
   if (newPassword.value !== confirm.value) {
-    error.value = "Passwords do not match"
+    error.value = "Пароли не совпадают"
     return
   }
   loading.value = true

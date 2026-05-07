@@ -27,8 +27,7 @@ function mountView() {
     global: {
       plugins: [pinia],
       stubs: {
-        AuthCard:     { template: "<div><slot /></div>" },
-        DevOtpBanner: true,
+        AuthCard: { template: "<div><slot /></div>" },
       },
     },
   })
@@ -55,7 +54,7 @@ describe("ResetPasswordView", () => {
     await wrapper.find("form").trigger("submit")
     await flushPromises()
 
-    expect(wrapper.find(".form-error").text()).toBe("Passwords do not match")
+    expect(wrapper.find(".form-error").text()).toBe("Пароли не совпадают")
     expect(mockPost).not.toHaveBeenCalled()
   })
 

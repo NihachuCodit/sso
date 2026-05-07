@@ -1,42 +1,42 @@
 <template>
   <div class="page-section">
-    <p class="page-section-title">Users</p>
+    <p class="page-section-title">Пользователи</p>
 
     <div class="admin-search-row">
       <input
         v-model="search"
-        placeholder="Search by email…"
+        placeholder="Поиск по email…"
         @keyup.enter="fetchUsers(1)"
       />
-      <button class="btn-sm" @click="fetchUsers(1)">Search</button>
+      <button class="btn-sm" @click="fetchUsers(1)">Найти</button>
     </div>
 
     <p v-if="loadError" class="form-error">{{ loadError }}</p>
     <div v-if="loading" class="spinner"></div>
 
-    <div v-else-if="users.length === 0" class="page-section-subtitle">No users found.</div>
+    <div v-else-if="users.length === 0" class="page-section-subtitle">Пользователи не найдены.</div>
 
     <div v-else class="admin-table-wrap">
       <table class="admin-table">
         <thead>
           <tr>
             <th>Email</th>
-            <th>Verified</th>
-            <th>Admin</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Sessions</th>
+            <th>Подтверждён</th>
+            <th>Администратор</th>
+            <th>Статус</th>
+            <th>Создан</th>
+            <th>Сессии</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in users" :key="u.id">
             <td class="text-mono">{{ u.email }}</td>
-            <td><span class="badge" :class="u.isVerified ? 'yes' : 'no'">{{ u.isVerified ? "Yes" : "No" }}</span></td>
-            <td><span class="badge" :class="u.isAdmin ? 'yes' : 'no'">{{ u.isAdmin ? "Yes" : "No" }}</span></td>
+            <td><span class="badge" :class="u.isVerified ? 'yes' : 'no'">{{ u.isVerified ? "Да" : "Нет" }}</span></td>
+            <td><span class="badge" :class="u.isAdmin ? 'yes' : 'no'">{{ u.isAdmin ? "Да" : "Нет" }}</span></td>
             <td>
               <span class="badge" :class="u.isLocked ? 'locked' : 'yes'">
-                {{ u.isLocked ? "Locked" : "Active" }}
+                {{ u.isLocked ? "Заблокирован" : "Активен" }}
               </span>
             </td>
             <td>{{ formatDate(u.createdAt) }}</td>
@@ -48,7 +48,7 @@
                 :disabled="busy === u.id"
                 @click="lock(u)"
               >
-                {{ busy === u.id ? "…" : "Lock" }}
+                {{ busy === u.id ? "…" : "Заблокировать" }}
               </button>
               <button
                 v-else
@@ -56,7 +56,7 @@
                 :disabled="busy === u.id"
                 @click="unlock(u)"
               >
-                {{ busy === u.id ? "…" : "Unlock" }}
+                {{ busy === u.id ? "…" : "Разблокировать" }}
               </button>
             </td>
           </tr>
@@ -65,9 +65,9 @@
     </div>
 
     <div v-if="pages > 1" class="pagination">
-      <button class="btn-sm" :disabled="page === 1" @click="fetchUsers(page - 1)">‹ Prev</button>
+      <button class="btn-sm" :disabled="page === 1" @click="fetchUsers(page - 1)">‹ Назад</button>
       <span class="pagination-info">{{ page }} / {{ pages }}</span>
-      <button class="btn-sm" :disabled="page === pages" @click="fetchUsers(page + 1)">Next ›</button>
+      <button class="btn-sm" :disabled="page === pages" @click="fetchUsers(page + 1)">Вперёд ›</button>
     </div>
   </div>
 </template>
@@ -122,7 +122,7 @@ async function lock(u: AdminUser) {
   try {
     await api.post(`/admin/users/${u.id}/lock`)
     u.isLocked = true
-    toast.show(`${u.email} locked`, "success")
+    toast.show(`${u.email} заблокирован`, "success")
   } catch (err: any) {
     toast.show(err.response?.data?.error ?? err.message, "error")
   } finally {
@@ -135,7 +135,7 @@ async function unlock(u: AdminUser) {
   try {
     await api.post(`/admin/users/${u.id}/unlock`)
     u.isLocked = false
-    toast.show(`${u.email} unlocked`, "success")
+    toast.show(`${u.email} разблокирован`, "success")
   } catch (err: any) {
     toast.show(err.response?.data?.error ?? err.message, "error")
   } finally {
@@ -144,6 +144,6 @@ async function unlock(u: AdminUser) {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" })
+  return new Date(iso).toLocaleDateString("ru-RU", { dateStyle: "medium" })
 }
 </script>

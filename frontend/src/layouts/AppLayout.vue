@@ -4,18 +4,18 @@
       <span class="app-nav-brand">SSO-IDP</span>
 
       <div class="app-nav-links">
-        <RouterLink to="/profile"  class="app-nav-link" activeClass="active">Profile</RouterLink>
-        <RouterLink to="/sessions" class="app-nav-link" activeClass="active">Sessions</RouterLink>
+        <RouterLink to="/profile"  class="app-nav-link" activeClass="active">Профиль</RouterLink>
+        <RouterLink to="/sessions" class="app-nav-link" activeClass="active">Сессии</RouterLink>
         <template v-if="auth.user?.isAdmin">
-          <RouterLink to="/admin/users"      class="app-nav-link" activeClass="active">Users</RouterLink>
-          <RouterLink to="/admin/audit-logs" class="app-nav-link" activeClass="active">Audit logs</RouterLink>
+          <RouterLink to="/admin/users"      class="app-nav-link" activeClass="active">Пользователи</RouterLink>
+          <RouterLink to="/admin/audit-logs" class="app-nav-link" activeClass="active">Журнал событий</RouterLink>
         </template>
       </div>
 
       <div class="app-nav-user">
         <span class="app-nav-email" :title="auth.user?.email">{{ auth.user?.email }}</span>
         <button class="btn-ghost" @click="handleLogout" :disabled="loggingOut">
-          {{ loggingOut ? "…" : "Sign out" }}
+          {{ loggingOut ? "…" : "Выйти" }}
         </button>
       </div>
     </nav>

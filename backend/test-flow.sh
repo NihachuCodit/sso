@@ -21,43 +21,47 @@ NC='\033[0m'
 pass()  { echo -e "${GREEN}  ✓ $1${NC}"; }
 fail()  {
   echo -e "${RED}  ✗ $1${NC}"
-  [[ -n "${2:-}" ]] && echo -e "${DIM}    Response: $2${NC}"
+  [[ -n "${2:-}" ]] && echo -e "${DIM}    Ответ: $2${NC}"
   exit 1
 }
 step()  { echo -e "\n${CYAN}▸ $1${NC}"; }
 info()  { echo -e "${DIM}  $1${NC}"; }
 warn()  { echo -e "${YELLOW}  ⚠ $1${NC}"; }
-# Safe display: pretty-prints JSON if valid, otherwise prints raw
 show()  { echo "${1}" | jq . 2>/dev/null || echo "  ${1}"; }
+
+# Cookie jar — refresh-токен хранится в httpOnly cookie на сервере
+COOKIES=$(mktemp)
+OLD_COOKIES=$(mktemp)
+trap "rm -f '$COOKIES' '$OLD_COOKIES'" EXIT
 
 echo -e "${CYAN}"
 echo "  ╔══════════════════════════════════╗"
-echo "  ║     SSO-IDP  Flow Test           ║"
+echo "  ║     SSO-IDP  Сквозной тест       ║"
 echo "  ╚══════════════════════════════════╝"
 echo -e "${NC}"
 echo "  Email : $EMAIL"
-echo "  Server: $BASE_URL"
+echo "  Сервер: $BASE_URL"
 
-# ─── Check dependencies ───────────────────────────────────────────────────────
-step "Checking dependencies"
+# ─── Проверка зависимостей ────────────────────────────────────────────────────
+step "Проверка зависимостей"
 for cmd in curl jq; do
   if ! command -v "$cmd" &>/dev/null; then
-    fail "Required tool not found: $cmd" ""
+    fail "Утилита не найдена: $cmd" ""
   fi
-  info "$cmd found"
+  info "$cmd найден"
 done
-pass "All dependencies present"
+pass "Все зависимости присутствуют"
 
-# ─── Check server health ──────────────────────────────────────────────────────
-step "Server health check"
+# ─── Проверка сервера ─────────────────────────────────────────────────────────
+step "Проверка доступности сервера"
 curl -s --max-time 5 "$BASE_URL/" -o /dev/null || {
-  echo -e "${RED}  ✗ Cannot reach $BASE_URL — is the server running?${NC}"
+  echo -e "${RED}  ✗ Сервер недоступен: $BASE_URL — запущен ли сервер?${NC}"
   echo -e "${DIM}    npm run dev${NC}"
   exit 1
 }
-pass "Server is up"
+pass "Сервер доступен"
 
-# ─── Helper: fetch OTP from dev endpoint (retries up to 3s) ──────────────────
+# ─── Вспомогательная функция: получить OTP через dev-эндпоинт (до 3с) ────────
 fetch_otp() {
   local email="$1"
   local otp=""
@@ -70,167 +74,169 @@ fetch_otp() {
     attempts=$((attempts + 1))
   done
   if [[ -z "$otp" ]]; then
-    echo -e "${RED}  ✗ Could not fetch OTP from /dev/otp — is NODE_ENV set to production?${NC}" >&2
+    echo -e "${RED}  ✗ Не удалось получить OTP — NODE_ENV установлен в production?${NC}" >&2
     exit 1
   fi
   echo "$otp"
 }
 
-# ─── 1. Register ──────────────────────────────────────────────────────────────
-step "1. Register"
+# ─── 1. Регистрация ───────────────────────────────────────────────────────────
+step "1. Регистрация нового пользователя"
 REG=$(curl -s -X POST "$BASE_URL/auth/register" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
 show "$REG"
-echo "$REG" | jq -e '.user' > /dev/null 2>&1 || fail "Registration failed" "$REG"
-pass "User registered"
+echo "$REG" | jq -e '.user' > /dev/null 2>&1 || fail "Регистрация не удалась" "$REG"
+pass "Пользователь зарегистрирован"
 
-# ─── 2. Duplicate register → expect error ─────────────────────────────────────
-step "2. Duplicate register (expect error)"
+# ─── 2. Повторная регистрация незаверенного пользователя → разрешена ──────────
+step "2. Повторная регистрация (пользователь не подтверждён — ожидаем успех)"
 DUP=$(curl -s -X POST "$BASE_URL/auth/register" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
 show "$DUP"
-echo "$DUP" | jq -e '.error' > /dev/null 2>&1 || fail "Duplicate register should be rejected" "$DUP"
-pass "Duplicate register correctly rejected"
+echo "$DUP" | jq -e '.user' > /dev/null 2>&1 || fail "Повторная регистрация незаверенного пользователя должна проходить" "$DUP"
+pass "Повторная регистрация разрешена (пользователь ещё не подтверждён)"
 
-# ─── 3. Request OTP ───────────────────────────────────────────────────────────
-step "3. Request OTP"
+# ─── 3. Запрос OTP ───────────────────────────────────────────────────────────
+step "3. Запрос одноразового кода (OTP)"
 OTP_REQ=$(curl -s -X POST "$BASE_URL/auth/otp" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\"}")
 show "$OTP_REQ"
-echo "$OTP_REQ" | jq -e '.message' > /dev/null 2>&1 || fail "OTP request failed" "$OTP_REQ"
-pass "OTP requested"
+echo "$OTP_REQ" | jq -e '.message' > /dev/null 2>&1 || fail "Запрос OTP не удался" "$OTP_REQ"
+pass "OTP запрошен, письмо отправлено"
 
-# ─── 4. Fetch OTP from DB ─────────────────────────────────────────────────────
-step "4. Fetch OTP from DB"
-OTP=$(fetch_otp "$EMAIL") || fail "Could not fetch OTP" ""
-pass "OTP fetched: $OTP"
+# ─── 4. Получение OTP ────────────────────────────────────────────────────────
+step "4. Получение OTP из кэша"
+OTP=$(fetch_otp "$EMAIL") || fail "Не удалось получить OTP" ""
+pass "OTP получен: $OTP"
 
-# ─── 5. Wrong OTP → expect error ─────────────────────────────────────────────
-step "5. Wrong OTP (expect error)"
+# ─── 5. Неверный OTP → ожидаем ошибку ────────────────────────────────────────
+step "5. Ввод неверного OTP (ожидаем отказ)"
 WRONG=$(curl -s -X POST "$BASE_URL/auth/verify-otp" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"otp\":\"000000\"}")
 show "$WRONG"
-echo "$WRONG" | jq -e '.error' > /dev/null 2>&1 || fail "Wrong OTP should be rejected" "$WRONG"
-pass "Wrong OTP correctly rejected"
+echo "$WRONG" | jq -e '.error' > /dev/null 2>&1 || fail "Неверный OTP должен быть отклонён" "$WRONG"
+pass "Неверный OTP отклонён"
 
-# ─── 6. Verify OTP → get tokens ───────────────────────────────────────────────
-step "6. Verify OTP"
+# ─── 6. Подтверждение OTP → получение токенов ────────────────────────────────
+step "6. Подтверждение OTP и получение токенов"
 VERIFY=$(curl -s -X POST "$BASE_URL/auth/verify-otp" \
+  -c "$COOKIES" -b "$COOKIES" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"otp\":\"$OTP\"}")
 show "$VERIFY"
-ACCESS=$(echo "$VERIFY" | jq -r '.accessToken' 2>/dev/null || echo "null")
-REFRESH=$(echo "$VERIFY" | jq -r '.refreshToken' 2>/dev/null || echo "null")
-[[ "$ACCESS" != "null" && -n "$ACCESS" ]] || fail "No access token in verify-otp response" "$VERIFY"
-pass "Got tokens via OTP"
+ACCESS=$(echo "$VERIFY" | jq -r '.accessToken // empty' 2>/dev/null)
+[[ -n "$ACCESS" ]] || fail "Токен доступа не получен" "$VERIFY"
+pass "Токены получены (refresh — в httpOnly cookie)"
 
-# ─── 7. Access profile ────────────────────────────────────────────────────────
-step "7. GET /auth/profile"
+# ─── 7. Доступ к профилю ─────────────────────────────────────────────────────
+step "7. GET /auth/profile — авторизованный запрос"
 PROFILE=$(curl -s "$BASE_URL/auth/profile" \
   -H "Authorization: Bearer $ACCESS")
 show "$PROFILE"
-echo "$PROFILE" | jq -e '.user' > /dev/null 2>&1 || fail "Profile request failed" "$PROFILE"
-pass "Profile accessible"
+echo "$PROFILE" | jq -e '.user' > /dev/null 2>&1 || fail "Запрос профиля не удался" "$PROFILE"
+pass "Профиль доступен"
 
-# ─── 8. Profile with no token → expect 401 ───────────────────────────────────
-step "8. GET /auth/profile — no token (expect 401)"
+# ─── 8. Профиль без токена → ожидаем 401 ─────────────────────────────────────
+step "8. GET /auth/profile — без токена (ожидаем отказ)"
 UNAUTH=$(curl -s "$BASE_URL/auth/profile")
 show "$UNAUTH"
-echo "$UNAUTH" | jq -e '.error' > /dev/null 2>&1 || fail "Unauthenticated request should be rejected" "$UNAUTH"
-pass "Unauthenticated request correctly rejected"
+echo "$UNAUTH" | jq -e '.error' > /dev/null 2>&1 || fail "Запрос без авторизации должен быть отклонён" "$UNAUTH"
+pass "Неавторизованный запрос отклонён"
 
-# ─── 9. Password login ────────────────────────────────────────────────────────
-step "9. Login with password"
+# ─── 9. Вход по паролю ───────────────────────────────────────────────────────
+step "9. Вход по логину и паролю"
 LOGIN=$(curl -s -X POST "$BASE_URL/auth/login" \
+  -c "$COOKIES" -b "$COOKIES" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
 show "$LOGIN"
-LOGIN_ACCESS=$(echo "$LOGIN" | jq -r '.accessToken' 2>/dev/null || echo "null")
-[[ "$LOGIN_ACCESS" != "null" && -n "$LOGIN_ACCESS" ]] || fail "Password login failed" "$LOGIN"
-pass "Logged in with password"
+LOGIN_ACCESS=$(echo "$LOGIN" | jq -r '.accessToken // empty' 2>/dev/null)
+[[ -n "$LOGIN_ACCESS" ]] || fail "Вход по паролю не удался" "$LOGIN"
+pass "Вход выполнен"
 
-# ─── 10. Wrong password → expect error ───────────────────────────────────────
-step "10. Wrong password (expect error)"
+# ─── 10. Неверный пароль → ожидаем ошибку ────────────────────────────────────
+step "10. Ввод неверного пароля (ожидаем отказ)"
 BADPASS=$(curl -s -X POST "$BASE_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"wrongpassword\"}")
 show "$BADPASS"
-echo "$BADPASS" | jq -e '.error' > /dev/null 2>&1 || fail "Wrong password should be rejected" "$BADPASS"
-pass "Wrong password correctly rejected"
+echo "$BADPASS" | jq -e '.error' > /dev/null 2>&1 || fail "Неверный пароль должен быть отклонён" "$BADPASS"
+pass "Неверный пароль отклонён"
 
-# ─── 11. Rotate refresh token ─────────────────────────────────────────────────
-step "11. Rotate refresh token"
+# ─── 11. Ротация refresh-токена ──────────────────────────────────────────────
+step "11. Ротация refresh-токена"
+cp "$COOKIES" "$OLD_COOKIES"
 ROTATED=$(curl -s -X POST "$BASE_URL/auth/refresh" \
-  -H "Content-Type: application/json" \
-  -d "{\"refreshToken\":\"$REFRESH\"}")
+  -c "$COOKIES" -b "$COOKIES" \
+  -H "Content-Type: application/json")
 show "$ROTATED"
-NEW_REFRESH=$(echo "$ROTATED" | jq -r '.refreshToken' 2>/dev/null || echo "null")
-[[ "$NEW_REFRESH" != "null" && -n "$NEW_REFRESH" ]] || fail "Refresh token rotation failed" "$ROTATED"
-pass "Got new refresh token"
+NEW_ACCESS=$(echo "$ROTATED" | jq -r '.accessToken // empty' 2>/dev/null)
+[[ -n "$NEW_ACCESS" ]] || fail "Ротация refresh-токена не удалась" "$ROTATED"
+pass "Новый refresh-токен получен"
 
-# ─── 12. Replay old token → expect rejection + session revoke ────────────────
-step "12. Replay old refresh token (expect rejection)"
+# ─── 12. Повторное использование старого токена → ожидаем отказ ──────────────
+step "12. Повторное использование старого refresh-токена (ожидаем отказ)"
 REPLAY=$(curl -s -X POST "$BASE_URL/auth/refresh" \
-  -H "Content-Type: application/json" \
-  -d "{\"refreshToken\":\"$REFRESH\"}")
+  -b "$OLD_COOKIES" \
+  -H "Content-Type: application/json")
 show "$REPLAY"
-echo "$REPLAY" | jq -e '.error' > /dev/null 2>&1 || fail "Token replay should be rejected" "$REPLAY"
-pass "Token replay correctly rejected (session revoked)"
+echo "$REPLAY" | jq -e '.error' > /dev/null 2>&1 || fail "Повторное использование токена должно быть отклонено" "$REPLAY"
+pass "Повторное использование токена отклонено, сессия отозвана"
 
-# ─── 13. New OTP flow to get fresh session for logout test ───────────────────
-step "13. Get fresh session for logout test (new OTP)"
+# ─── 13. Новая сессия для теста выхода ───────────────────────────────────────
+step "13. Получение новой сессии для теста выхода"
 NEW_OTP_REQ=$(curl -s -X POST "$BASE_URL/auth/otp" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\"}")
 show "$NEW_OTP_REQ"
-echo "$NEW_OTP_REQ" | jq -e '.message' > /dev/null 2>&1 || fail "Second OTP request failed" "$NEW_OTP_REQ"
+echo "$NEW_OTP_REQ" | jq -e '.message' > /dev/null 2>&1 || fail "Повторный запрос OTP не удался" "$NEW_OTP_REQ"
 
-OTP2=$(fetch_otp "$EMAIL") || fail "Could not fetch second OTP" ""
-pass "Second OTP fetched: $OTP2"
+OTP2=$(fetch_otp "$EMAIL") || fail "Не удалось получить второй OTP" ""
+pass "Второй OTP получен: $OTP2"
 
 VERIFY2=$(curl -s -X POST "$BASE_URL/auth/verify-otp" \
+  -c "$COOKIES" -b "$COOKIES" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"otp\":\"$OTP2\"}")
 show "$VERIFY2"
-FRESH_REFRESH=$(echo "$VERIFY2" | jq -r '.refreshToken' 2>/dev/null || echo "null")
-FRESH_ACCESS=$(echo "$VERIFY2" | jq -r '.accessToken' 2>/dev/null || echo "null")
-[[ "$FRESH_REFRESH" != "null" && -n "$FRESH_REFRESH" ]] || fail "Could not get fresh tokens" "$VERIFY2"
-pass "Fresh tokens obtained"
+FRESH_ACCESS=$(echo "$VERIFY2" | jq -r '.accessToken // empty' 2>/dev/null)
+[[ -n "$FRESH_ACCESS" ]] || fail "Не удалось получить новые токены" "$VERIFY2"
+pass "Новые токены получены"
 
-# ─── 14. Logout ───────────────────────────────────────────────────────────────
-step "14. Logout"
+# ─── 14. Выход ───────────────────────────────────────────────────────────────
+step "14. Выход из системы"
 LOGOUT=$(curl -s -X POST "$BASE_URL/auth/logout" \
-  -H "Content-Type: application/json" \
-  -d "{\"refreshToken\":\"$FRESH_REFRESH\"}")
+  -c "$COOKIES" -b "$COOKIES" \
+  -H "Content-Type: application/json")
 show "$LOGOUT"
-echo "$LOGOUT" | jq -e '.message' > /dev/null 2>&1 || fail "Logout failed" "$LOGOUT"
-pass "Logged out"
+echo "$LOGOUT" | jq -e '.message' > /dev/null 2>&1 || fail "Выход не удался" "$LOGOUT"
+pass "Выход выполнен"
 
-# ─── 15. Refresh after logout → expect rejection ─────────────────────────────
-step "15. Refresh after logout (expect rejection)"
+# ─── 15. Обновление токена после выхода → ожидаем отказ ──────────────────────
+step "15. Refresh-токен после выхода (ожидаем отказ)"
 POST_LOGOUT=$(curl -s -X POST "$BASE_URL/auth/refresh" \
-  -H "Content-Type: application/json" \
-  -d "{\"refreshToken\":\"$FRESH_REFRESH\"}")
+  -c "$COOKIES" -b "$COOKIES" \
+  -H "Content-Type: application/json")
 show "$POST_LOGOUT"
-echo "$POST_LOGOUT" | jq -e '.error' > /dev/null 2>&1 || fail "Post-logout refresh should be rejected" "$POST_LOGOUT"
-pass "Post-logout refresh correctly rejected"
+echo "$POST_LOGOUT" | jq -e '.error' > /dev/null 2>&1 || fail "Refresh после выхода должен быть отклонён" "$POST_LOGOUT"
+pass "Refresh после выхода отклонён"
 
-# ─── 16. Access token after logout (stateless JWT note) ──────────────────────
-step "16. Access token validity after logout"
+# ─── 16. Access-токен после выхода (JWT — stateless) ─────────────────────────
+step "16. Проверка access-токена после выхода"
 STALE=$(curl -s "$BASE_URL/auth/profile" \
   -H "Authorization: Bearer $FRESH_ACCESS")
 show "$STALE"
 if echo "$STALE" | jq -e '.user' > /dev/null 2>&1; then
-  warn "Access token still valid — expected: JWTs are stateless and remain valid until expiry"
-  warn "To invalidate immediately: npm run cli -- user:revoke $EMAIL"
+  warn "Access-токен всё ещё действителен — JWT stateless, живёт до истечения срока"
+  warn "Для немедленного отзыва: npm run cli -- user:revoke $EMAIL"
 else
-  pass "Access token rejected (expired or tokenVersion bumped)"
+  pass "Access-токен отклонён (истёк или версия токена изменена)"
 fi
 
 echo -e "\n${GREEN}  ══════════════════════════════════════${NC}"
-echo -e "${GREEN}  All tests passed!${NC}"
+echo -e "${GREEN}  Все тесты пройдены успешно!${NC}"
 echo -e "${GREEN}  ══════════════════════════════════════${NC}\n"

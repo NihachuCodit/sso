@@ -1,15 +1,15 @@
 <template>
   <div class="page-section">
-    <p class="page-section-title">Active sessions</p>
+    <p class="page-section-title">Активные сессии</p>
 
     <!-- Filters -->
     <div class="sessions-toolbar">
       <div class="filter-group">
-        <label class="filter-label">Status</label>
+        <label class="filter-label">Статус</label>
         <select v-model="statusFilter" class="filter-select" @change="fetchSessions(1)">
-          <option value="all">All</option>
-          <option value="active">Active</option>
-          <option value="revoked">Revoked</option>
+          <option value="all">Все</option>
+          <option value="active">Активные</option>
+          <option value="revoked">Отозванные</option>
         </select>
       </div>
     </div>
@@ -19,7 +19,7 @@
     <div v-if="loading" class="spinner"></div>
 
     <div v-else-if="sessions.length === 0" class="page-section-subtitle">
-      No sessions found.
+      Сессии не найдены.
     </div>
 
     <ul v-else style="list-style: none">
@@ -27,10 +27,10 @@
         <div class="session-info">
           <div class="session-device">{{ deviceLabel(s.deviceInfo) }}</div>
           <div class="session-meta">
-            <span v-if="s.lastUsedAt">Last used {{ formatDate(s.lastUsedAt) }}</span>
-            <span>Created {{ formatDate(s.createdAt) }}</span>
+            <span v-if="s.lastUsedAt">Последнее использование {{ formatDate(s.lastUsedAt) }}</span>
+            <span>Создана {{ formatDate(s.createdAt) }}</span>
             <span class="session-badge" :class="s.revoked ? 'revoked' : 'active'">
-              {{ s.revoked ? "Revoked" : "Active" }}
+              {{ s.revoked ? "Отозвана" : "Активна" }}
             </span>
           </div>
         </div>
@@ -41,7 +41,7 @@
           :disabled="revoking === s.id"
           @click="revoke(s.id)"
         >
-          {{ revoking === s.id ? "…" : "Revoke" }}
+          {{ revoking === s.id ? "…" : "Отозвать" }}
         </button>
       </li>
     </ul>
@@ -53,7 +53,7 @@
         :disabled="page === 1"
         @click="fetchSessions(page - 1)"
       >
-        ‹ Prev
+        ‹ Назад
       </button>
 
       <span class="pagination-info">{{ page }} / {{ pages }}</span>
@@ -63,7 +63,7 @@
         :disabled="page === pages"
         @click="fetchSessions(page + 1)"
       >
-        Next ›
+        Вперёд ›
       </button>
     </div>
   </div>
@@ -120,7 +120,7 @@ async function revoke(id: string) {
     await api.delete(`/sessions/${id}`)
     const s = sessions.value.find(s => s.id === id)
     if (s) s.revoked = true
-    toast.show("Session revoked", "success")
+    toast.show("Сессия отозвана", "success")
     // If filtered to active-only, remove the now-revoked entry
     if (statusFilter.value === "active")
       sessions.value = sessions.value.filter(s => s.id !== id)
@@ -132,7 +132,7 @@ async function revoke(id: string) {
 }
 
 function deviceLabel(raw: string | null): string {
-  if (!raw) return "Unknown device"
+  if (!raw) return "Неизвестное устройство"
   try {
     const parsed = JSON.parse(raw)
     return parsed.userAgent ?? parsed.device ?? raw
@@ -142,7 +142,7 @@ function deviceLabel(raw: string | null): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString("ru-RU", {
     dateStyle: "medium",
     timeStyle: "short",
   })

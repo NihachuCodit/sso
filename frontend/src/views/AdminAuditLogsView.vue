@@ -1,37 +1,37 @@
 <template>
   <div class="page-section">
-    <p class="page-section-title">Audit logs</p>
+    <p class="page-section-title">Журнал событий</p>
 
     <div class="admin-search-row">
       <input
         v-model="filterUserId"
-        placeholder="Filter by user ID…"
+        placeholder="Фильтр по ID пользователя…"
         style="max-width: 240px"
         @keyup.enter="fetchLogs(1)"
       />
       <input
         v-model="filterType"
-        placeholder="Filter by event type…"
+        placeholder="Фильтр по типу события…"
         style="max-width: 220px"
         @keyup.enter="fetchLogs(1)"
       />
-      <button class="btn-sm" @click="fetchLogs(1)">Filter</button>
+      <button class="btn-sm" @click="fetchLogs(1)">Фильтр</button>
     </div>
 
     <p v-if="loadError" class="form-error">{{ loadError }}</p>
     <div v-if="loading" class="spinner"></div>
 
-    <div v-else-if="logs.length === 0" class="page-section-subtitle">No logs found.</div>
+    <div v-else-if="logs.length === 0" class="page-section-subtitle">Записи не найдены.</div>
 
     <div v-else class="admin-table-wrap">
       <table class="admin-table">
         <thead>
           <tr>
-            <th>When</th>
-            <th>Event</th>
-            <th>User ID</th>
+            <th>Время</th>
+            <th>Событие</th>
+            <th>ID пользователя</th>
             <th>IP</th>
-            <th>Result</th>
+            <th>Результат</th>
           </tr>
         </thead>
         <tbody>
@@ -42,7 +42,7 @@
             <td class="text-mono">{{ l.ip ?? "—" }}</td>
             <td>
               <span class="badge" :class="l.success ? 'yes' : 'locked'">
-                {{ l.success ? "OK" : "Fail" }}
+                {{ l.success ? "OK" : "Ошибка" }}
               </span>
             </td>
           </tr>
@@ -51,9 +51,9 @@
     </div>
 
     <div v-if="pages > 1" class="pagination">
-      <button class="btn-sm" :disabled="page === 1" @click="fetchLogs(page - 1)">‹ Prev</button>
+      <button class="btn-sm" :disabled="page === 1" @click="fetchLogs(page - 1)">‹ Назад</button>
       <span class="pagination-info">{{ page }} / {{ pages }}</span>
-      <button class="btn-sm" :disabled="page === pages" @click="fetchLogs(page + 1)">Next ›</button>
+      <button class="btn-sm" :disabled="page === pages" @click="fetchLogs(page + 1)">Вперёд ›</button>
     </div>
   </div>
 </template>
@@ -102,6 +102,6 @@ async function fetchLogs(toPage = 1) {
 onMounted(() => fetchLogs(1))
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
+  return new Date(iso).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })
 }
 </script>

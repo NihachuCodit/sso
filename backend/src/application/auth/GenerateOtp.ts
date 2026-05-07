@@ -16,16 +16,11 @@ export async function generateOtp(userId: string, email: string) {
     devCacheOtp(email, code)
   }
 
-  const hasSmtp   = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)
-  const hasResend = !!process.env.RESEND_API_KEY
-
-  if (hasSmtp || hasResend) {
-    await sendMail({
-      to:      email,
-      subject: "Your verification code",
-      html:    otpEmailHtml(code),
-    })
-  }
+  await sendMail({
+    to:      email,
+    subject: "Your verification code",
+    html:    otpEmailHtml(code),
+  })
 
   return code
 }

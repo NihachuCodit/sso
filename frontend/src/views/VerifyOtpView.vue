@@ -1,15 +1,13 @@
 <template>
   <AuthCard
-    title="Check your email"
-    :subtitle="email ? `We sent a code to ${email}` : 'Enter the code from your email'"
+    title="Проверьте почту"
+    :subtitle="email ? `Мы отправили код на ${email}` : 'Введите код из письма'"
   >
-    <DevOtpBanner :email="email" />
-
     <p v-if="error" class="form-error">{{ error }}</p>
 
     <form @submit.prevent="submit">
       <div class="form-field">
-        <label for="otp">6-digit code</label>
+        <label for="otp">6-значный код</label>
         <input
           id="otp"
           v-model="otp"
@@ -23,17 +21,17 @@
       </div>
 
       <button class="btn" type="submit" :disabled="loading">
-        {{ loading ? "Verifying…" : "Verify" }}
+        {{ loading ? "Проверка…" : "Подтвердить" }}
       </button>
     </form>
 
     <div class="form-links">
       <span>
-        Didn't receive it?
-        <a v-if="cooldown === 0" href="#" @click.prevent="resend">Resend code</a>
-        <span v-else class="resend-cooldown">Resend in {{ cooldown }}s</span>
+        Не получили код?
+        <a v-if="cooldown === 0" href="#" @click.prevent="resend">Отправить повторно</a>
+        <span v-else class="resend-cooldown">Повтор через {{ cooldown }}с</span>
       </span>
-      <span><RouterLink to="/login">Back to sign in</RouterLink></span>
+      <span><RouterLink to="/login">Назад ко входу</RouterLink></span>
     </div>
   </AuthCard>
 </template>
@@ -45,7 +43,6 @@ import { api } from "../api/client"
 import { useAuthStore } from "../stores/auth"
 import { useToast } from "../composables/useToast"
 import AuthCard from "../components/AuthCard.vue"
-import DevOtpBanner from "../components/DevOtpBanner.vue"
 
 const router = useRouter()
 const auth   = useAuthStore()
@@ -100,7 +97,7 @@ async function resend() {
   try {
     await api.post("/auth/otp", { email: email.value })
     startCooldown()
-    toast.show("Code resent", "success")
+    toast.show("Код отправлен повторно", "success")
   } catch (err: any) {
     error.value = err.response?.data?.error ?? err.message
   }
