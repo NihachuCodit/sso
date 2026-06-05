@@ -57,7 +57,7 @@ describe("ProfileView", () => {
     vi.spyOn(auth, "logoutAll").mockResolvedValue()
 
     const wrapper = mountView()
-    const btn = wrapper.findAll("button").find(b => b.text().includes("Sign out all devices"))!
+    const btn = wrapper.findAll("button").find(b => b.text().includes("Выйти со всех устройств"))!
     await btn.trigger("click")
     await flushPromises()
 

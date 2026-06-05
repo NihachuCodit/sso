@@ -60,7 +60,7 @@ describe("ChangePasswordView", () => {
     const wrapper = mountView()
     await fillAndSubmit(wrapper, "OldPass1!", "NewPass1!", "Different!")
 
-    expect(wrapper.find(".form-error").text()).toBe("Passwords do not match")
+    expect(wrapper.find(".form-error").text()).toBe("Пароли не совпадают")
     expect(mockPost).not.toHaveBeenCalled()
   })
 

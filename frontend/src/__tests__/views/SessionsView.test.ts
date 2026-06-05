@@ -70,8 +70,8 @@ describe("SessionsView", () => {
     await flushPromises()
 
     const badges = wrapper.findAll(".session-badge")
-    expect(badges[0].text()).toBe("Active")
-    expect(badges[1].text()).toBe("Revoked")
+    expect(badges[0].text()).toBe("Активна")
+    expect(badges[1].text()).toBe("Отозвана")
   })
 
   it("shows 'Unknown device' when deviceInfo is null", async () => {
@@ -79,7 +79,7 @@ describe("SessionsView", () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.find(".session-device").text()).toBe("Unknown device")
+    expect(wrapper.find(".session-device").text()).toBe("Неизвестное устройство")
   })
 
   it("calls DELETE /sessions/:id and marks the session revoked in place", async () => {
@@ -93,7 +93,7 @@ describe("SessionsView", () => {
 
     expect(mockDelete).toHaveBeenCalledWith("/sessions/s-1")
     // Badge should now read "Revoked" without a page reload
-    expect(wrapper.find(".session-badge").text()).toBe("Revoked")
+    expect(wrapper.find(".session-badge").text()).toBe("Отозвана")
     expect(wrapper.find(".btn-sm.danger").exists()).toBe(false)
   })
 
@@ -116,7 +116,7 @@ describe("SessionsView", () => {
 
     expect(wrapper.find(".form-error").text()).toBe("Session not found")
     // Session should not be marked revoked after failure
-    expect(wrapper.find(".session-badge").text()).toBe("Active")
+    expect(wrapper.find(".session-badge").text()).toBe("Активна")
   })
 
   it("renders deviceInfo userAgent from a JSON string", async () => {
